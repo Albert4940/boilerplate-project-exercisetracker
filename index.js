@@ -18,6 +18,16 @@ mongoose.connect(MONGO_URI, {
   console.error('Database connection error');
 });
 
+const UserSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required:true
+  },
+  log:Array
+})
+
+const User = mongoose.model('User',UserSchema);
+
 app.use(cors())
 app.use(express.static('public'))
 app.get('/', (req, res) => {
