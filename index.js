@@ -30,15 +30,57 @@ const UserSchema = new mongoose.Schema({
   }
 })
 
-const User = mongoose.model('User',UserSchema);
+const UserModel = mongoose.model('User',UserSchema);
+
+//Refactoring in order to take any field 
+const createAndSaveUsername = async (username) => {
+  let response = '';
+  //handle error
+  let existsUser = await findOneByUsername(username);
+
+  if(existsUser != null){
+    return existsUser;
+  }
+  const User = new UserModel({
+    username: username,
+  })
+
+  try{
+    response = await User.save();
+  }catch(err){
+    response = err;
+  }
+
+    
+  return response;
+}
+
+//return string for error and object for success
+const findOneByUsername = async (username) => {
+  let response = '';
+
+  try{
+    response = await UserModel.findOne({ username})
+  }catch(err){
+    response = err;
+  }
+  //handle error and reverse proprietes:
+  return response;
+}
 
 app.use(cors())
 app.use(express.static('public'))
+app.use(bodyParser.urlencoded({exetended:false}));
+
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
 
-
+app.post('/api/users', async (req, res ) => {
+  const {username } = req.body;
+  const response  = await createAndSaveUsername(username);
+  res.json(response)
+})
 
 
 const listener = app.listen(process.env.PORT || 3000, () => {
