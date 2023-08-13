@@ -23,7 +23,11 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required:true
   },
-  log:Array
+  log:{
+    description: String,
+    duration: Number,
+    date:Date
+  }
 })
 
 const User = mongoose.model('User',UserSchema);
@@ -33,7 +37,6 @@ app.use(express.static('public'))
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
-
 
 
 
