@@ -36,9 +36,9 @@ const UserModel = mongoose.model('User',UserSchema);
 const createAndSaveUsername = async (username) => {
   let response = '';
   //handle error
-  let existsUser = await findOneByUsername(username);
+  let {data:existsUser} = await findOneByUsername(username);
 
-  if(existsUser != null){
+  if(existsUser && existsUser!= null){
     return existsUser;
   }
   const User = new UserModel({
@@ -49,25 +49,38 @@ const createAndSaveUsername = async (username) => {
     response = await User.save();
   }catch(err){
     response = err;
-  }
-
-    
+  }    
   return response;
 }
 
-//return string for error and object for success
+/*
+Return an object with data field when if success 
+and error field when failure
+*/
 const findOneByUsername = async (username) => {
   let response = '';
 
   try{
     response = await UserModel.findOne({ username})
+    response = {data: response}
   }catch(err){
-    response = err;
+    response = {error: err};
   }
-  //handle error and reverse proprietes:
+  //reverse proprietes:
   return response;
 }
 
+const findAllUsers = async () => {
+  let response = '';
+
+  try{
+    response = await UserModel.find({});
+    response = {data: response}
+  }catch(err){
+    response = {error: err}
+  }
+  return response;
+}
 app.use(cors())
 app.use(express.static('public'))
 app.use(bodyParser.urlencoded({exetended:false}));
@@ -75,8 +88,12 @@ app.use(bodyParser.urlencoded({exetended:false}));
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
-
-app.post('/api/users', async (req, res ) => {
+//Put post and get togeter 
+app.route('/api/users').get(async (req,res) => {
+  let {data:response} = await findAllUsers();
+  res.json(response);
+})
+.post(async (req, res ) => {
   const {username } = req.body;
   const response  = await createAndSaveUsername(username);
   res.json(response)
