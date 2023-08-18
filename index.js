@@ -18,16 +18,25 @@ mongoose.connect(MONGO_URI, {
   console.error('Database connection error');
 });
 
+const ExerciceSchema = new mongoose.Schema({
+  _id:mongoose.Schema.Types.ObjectId,
+  description: {
+    type:String,
+    required:true
+  },
+  duration:{
+    type:Number,
+    required:true
+  },
+  date:Date
+})
+
 const UserSchema = new mongoose.Schema({
   username: {
     type: String,
     required:true
   },
-  log:{
-    description: String,
-    duration: Number,
-    date:Date
-  }
+  log:[ExerciceSchema]
 })
 
 const UserModel = mongoose.model('User',UserSchema);
@@ -53,10 +62,47 @@ const createAndSaveUsername = async (username) => {
   return response;
 }
 
+const findUserById = async _id => {
+  let response = '';
+      try{
+        response = await UserModel.findById({ _id})
+        response = {data: response}
+      }catch(err){
+        response = {error: err};
+      }
+      //reverse proprietes:
+      return response;
+}
+
+//const f
+//create exercice factory
+
+//Refac validor user input, create a method to update user
+const createAndSaveExercice = async (_id, description,duration,date) => {
+  let result = ''
+  let {data:user} = await findUserById(_id);  
+  date = date || Date.now()
+
+  if(!user && user === null) {
+   return {error: "User Not found!"};
+  }
+  
+  user.log.push({description,duration,date});
+ 
+  try{    
+    result = await user.save();  
+    result = {data: result}
+  }catch(e){
+    result = {error: e};
+  }
+  return result;
+}
+
 /*
 Return an object with data field when if success 
 and error field when failure
 */
+//Refactoring in order to take any field 
 const findOneByUsername = async (username) => {
   let response = '';
 
@@ -88,7 +134,7 @@ app.use(bodyParser.urlencoded({exetended:false}));
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
-//Put post and get togeter 
+
 app.route('/api/users').get(async (req,res) => {
   let {data:response} = await findAllUsers();
   res.json(response);
@@ -99,6 +145,34 @@ app.route('/api/users').get(async (req,res) => {
   res.json(response)
 })
 
+//refactoring result object, or remove result from route and put it an middleware function
+app.post('/api/users/:_id/exercises', async (req, res) => {
+  
+  const { _id } = req.params;
+  let {description,duration,date} = req.body;
+ 
+  let {data:result} = await createAndSaveExercice(_id,description,duration,date);
+ const lastExercise = result.log[result.log.length - 1]
+
+//  result = {
+//   _id:result._id,
+//   username:result.username,
+//   description:lastExercise.description,
+//   duration:lastExercise.duration,
+//   date:lastExercise.date
+// }
+result = {
+  _id:result._id,
+  username:result.username,
+  date: new Date(lastExercise.date).toDateString(),
+  duration:lastExercise.duration, 
+  description:lastExercise.description
+}
+
+res.json(result);
+  //console.log("Route",result)
+  //console.log("_id: " + _id + " description: " + description + " duration: " + duration + " date: " + date);
+})
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port)
