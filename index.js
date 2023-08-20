@@ -139,14 +139,24 @@ app.get('/', (req, res) => {
 app.get('/api/users/:_id/logs', async (req,res) => {
   const {_id:id} = req.params;
   let {data:result} = await findUserById(id); 
-  const {username,_id,log,__v} = result;
+  let {username,_id,log,__v} = result;
+  
+  log = log?.map(item => {
+    const {description,duration,date} = item
+     return {
+      description,
+      duration,
+      date:new Date(date).toDateString()
+     }
+    }) 
+
   result = {
     username,
     _id,
     count:__v,
     log
   };
-  
+
   res.json(result)
 })
 
