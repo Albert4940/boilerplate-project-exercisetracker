@@ -71,7 +71,7 @@ const findUserById = async _id => {
         response = {error: err};
       }
       //reverse proprietes:
-      return response;
+      return response ;
 }
 
 //const f
@@ -135,13 +135,28 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
 
+//refactoring
+app.get('/api/users/:_id/logs', async (req,res) => {
+  const {_id:id} = req.params;
+  let {data:result} = await findUserById(id); 
+  const {username,_id,log,__v} = result;
+  result = {
+    username,
+    _id,
+    count:__v,
+    log
+  };
+  
+  res.json(result)
+})
+
 app.route('/api/users').get(async (req,res) => {
   let {data:response} = await findAllUsers();
   res.json(response);
 })
 .post(async (req, res ) => {
   const {username } = req.body;
-  const response  = await createAndSaveUsername(username);
+  const  response  = await createAndSaveUsername(username);
   res.json(response)
 })
 
@@ -154,13 +169,7 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
   let {data:result} = await createAndSaveExercice(_id,description,duration,date);
  const lastExercise = result.log[result.log.length - 1]
 
-//  result = {
-//   _id:result._id,
-//   username:result.username,
-//   description:lastExercise.description,
-//   duration:lastExercise.duration,
-//   date:lastExercise.date
-// }
+
 result = {
   _id:result._id,
   username:result.username,
@@ -170,8 +179,6 @@ result = {
 }
 
 res.json(result);
-  //console.log("Route",result)
-  //console.log("_id: " + _id + " description: " + description + " duration: " + duration + " date: " + date);
 })
 
 const listener = app.listen(process.env.PORT || 3000, () => {
