@@ -62,10 +62,12 @@ const createAndSaveUsername = async (username) => {
   return response;
 }
 
+//refactoring with query params 
 const findUserById = async _id => {
+  
   let response = '';
       try{
-        response = await UserModel.findById({ _id})
+        response = await UserModel.findById({_id});
         response = {data: response}
       }catch(err){
         response = {error: err};
@@ -135,30 +137,93 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
 
-//refactoring
+
+//refactoring with next
+const isObjectEmpty = objectName => {
+  return Object.keys(objectName).length === 0
+}
+
+//refactoring parameters
+// const findExercices = async (req) => {
+//   console.log('findExercicesFunction')
+//   const {from,to,limit} = req.query;
+//   const {_id} = req.params
+//   let response = '';
+//   //  date: {$gte: from, $lte: to}
+//   if(!isObjectEmpty(req.query) && !isObjectEmpty(req.params)) {
+//       try{
+//         response = await UserModel.findById(
+//           {
+//             _id
+//           },
+//           {
+//             log:{
+//               $slice: Number(limit),
+//               //$elemMatch: {duration: {$gte: 60}}
+//             },
+//             log:{
+//               $elemMatch: {duration: {$lt: 60}}
+//             }
+//           }
+//           );
+//         response = {data: response}
+//       }catch(err){
+//         response = {error: err};
+//       }
+//   }
+ 
+//   return response ;
+// }
+
+
+const filterExercices =  (data, req) => {
+ const {from,to,limit} = req.query;
+//  const {log} = data;  
+//refactoring nullcoalisiinm
+  let response = data.log;
+  //console.log(limit > 0)
+    if(limit && limit > 0) {     
+      response = response.slice(0, limit);
+    }
+ 
+  return response;
+}
+
+const findUserAndExercises = async (req) => {
+  const {data:result} =  await findUserById(req.params._id);
+
+  if(!isObjectEmpty(req.query)){
+    result.log = filterExercices(result,req)
+  }
+
+  return result;
+}
+
 app.get('/api/users/:_id/logs', async (req,res) => {
-  const {_id:id} = req.params;
-  let {data:result} = await findUserById(id); 
-  let {username,_id,log,__v} = result;
-  
-  log = log?.map(item => {
-    const {description,duration,date} = item
-     return {
-      description,
-      duration,
-      date:new Date(date).toDateString()
-     }
-    }) 
 
-  result = {
-    username,
-    _id,
-    count:__v,
-    log
-  };
 
-  res.json(result)
+   let result = await findUserAndExercises(req); 
+  //  let {username,_id,log,__v} = result;  
+  // log = log?.map(item => {
+  //   const {description,duration,date} = item
+  //    return {
+  //     description,
+  //     duration,
+  //     date:new Date(date).toDateString()
+  //    }
+  //   }) 
+
+  // result = {
+  //   username,
+  //   _id,
+  //   count:__v,
+  //   log
+  // };
+
+   res.json(result)
+       
 })
+
 
 app.route('/api/users').get(async (req,res) => {
   let {data:response} = await findAllUsers();
