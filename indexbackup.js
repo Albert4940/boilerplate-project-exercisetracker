@@ -1,12 +1,10 @@
 const express = require('express')
 const app = express()
-const cors = require('cors')
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-require('dotenv').config()
-
-
+const cors = require('cors')
 const MONGO_URI = process.env.MONGO_URI;
+require('dotenv').config()
 
 
 
@@ -45,10 +43,7 @@ const UserModel = mongoose.model('User', UserSchema);
 
 //Refactoring in order to take any field 
 
-const createAndSaveExercice = async (req) => {
-  const { _id } = req.params;
-  let {description,duration,date} = req.body;
-  
+const createAndSaveExercice = async (_id, description,duration,date) => {
   let result = ''
   let {data:user} = await findUserById(_id);  
   date = date || Date.now()
@@ -166,38 +161,31 @@ const filterExercices =  (data, req) => {
 //  const {log} = data;  
 //refactoring nullcoalisiinm
   let response = data.log;
-  //console.log(limit > 0)  
-    if(from && to){
-     
-      from = getFullDate(from);
-      to = getFullDate(to);
-     
-      response = response.filter(({date}) => getFullDate(date)>= from && getFullDate(date) <= to)
-    }
+  //console.log(limit > 0)
     if(limit && limit > 0) {     
       response = response.slice(0, limit);      
     }
+
+    if(from || to){
+      from = getFullDate(from);
+      
+      to = getFullDate(to);
+      // response = response.filter(({date}) => getFullDate(date)>= from && getFullDate(date) <= to).map(item => {
+      //   item.date = new Date(date).toDateString()
+      //   return item;
+      // });
+    }
+ 
   return response;
 }
 
 const findUserAndExercises = async (req) => {
-  let {data:result} =  await findUserById(req.params._id);
+  const {data:result} =  await findUserById(req.params._id);
 
   if(!isObjectEmpty(req.query)){
     result.log = filterExercices(result,req)
   }
-  result = JSON.parse(JSON.stringify(result));
-    
-  result.log = result.log?.map(item => {
-    const {description,duration,date} = item
-     return {
-      description,
-      duration,
-      date:new Date(date).toDateString()
-     }
-    }) 
-  result['count'] = result.log.length;
-  
+
   return result;
 }
 
@@ -212,7 +200,24 @@ app.get('/', (req, res) => {
 app.get('/api/users/:_id/logs', async (req,res) => {
 
 
-   let result = await findUserAndExercises(req);
+   let result = await findUserAndExercises(req); 
+   let {username,_id,log,__v} = result;  
+  log = log?.map(item => {
+    const {description,duration,date} = item
+     return {
+      description,
+      duration,
+      date:new Date(date).toDateString()
+     }
+    }) 
+
+  result = {
+    username,
+    _id,
+    count:__v,
+    log
+  };
+
    res.json(result)
        
 })
@@ -233,8 +238,8 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
   const { _id } = req.params;
   let {description,duration,date} = req.body;
 
-  // let result = await createAndSaveExercice(_id,description,duration,date);
-  let result = await createAndSaveExercice(req);
+  let result = await createAndSaveExercice(_id,description,duration,date);
+  
   result = result.data || result.error;
   res.json(result);
 })
